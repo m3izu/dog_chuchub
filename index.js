@@ -22,10 +22,13 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Define User and Post schemas
+// In your user model file (e.g., models/User.js)
 const userSchema = new mongoose.Schema({
-  email: String,
-  password: String,
+  email: { type: String, required: true },
+  password: { type: String, required: true },
+  isVerified: { type: Boolean, default: false } // New field to track email verification
 });
+
 const User = mongoose.model('User', userSchema);
 
 const postSchema = new mongoose.Schema({
@@ -50,17 +53,49 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Endpoint for user signup
+const jwt = require('jsonwebtoken');
+
+// Inside your /api/signup endpoint:
 app.post('/api/signup', async (req, res) => {
   const { email, password } = req.body;
   try {
     const hashed = await bcrypt.hash(password, 10);
     const user = new User({ email, password: hashed });
+    
+    // Generate a verification token (expires in 1 day)
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    
+    // Save user (still unverified)
     await user.save();
-    res.json({ message: 'User created' });
+    
+    // Send verification email (see next step)
+    sendVerificationEmail(user.email, token);
+    
+    res.json({ message: 'User created. Please check your email to verify your account.' });
   } catch (error) {
     res.status(500).json({ message: 'Signup error', error });
   }
 });
+
+app.get('/api/verify', async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).send('Verification token is missing.');
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+    
+    // Update the user to set isVerified to true
+    await User.findByIdAndUpdate(userId, { isVerified: true });
+    
+    res.send('Your account has been verified. You can now log in.');
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(400).send('Invalid or expired token.');
+  }
+});
+
+
 
 // Endpoint for user login
 app.post('/api/login', async (req, res) => {
@@ -68,14 +103,22 @@ app.post('/api/login', async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+    
+    // Check if email has been verified
+    if (!user.isVerified) {
+      return res.status(401).json({ message: 'Please verify your account. Check your email for the verification link.' });
+    }
+    
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+    
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.json({ token });
   } catch (error) {
     res.status(500).json({ message: 'Login error', error });
   }
 });
+
 
 // Setup multer for file uploads (in-memory storage)
 const storage = multer.memoryStorage();
