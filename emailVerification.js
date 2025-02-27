@@ -1,4 +1,4 @@
-const transporter = require('mailer.js');
+const transporter = require('./mailer.js');
 
 function sendVerificationEmail(email, token) {
   const url = `https://dog-chuchub.onrender.com/api/verify?token=${token}`;
