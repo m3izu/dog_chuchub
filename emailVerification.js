@@ -4,7 +4,7 @@ function sendVerificationEmail(email, token) {
   const url = `https://dog-chuchub.onrender.com/api/verify?token=${token}`;
   
   const mailOptions = {
-    from: process.env.EMAIL_USER,
+    from: '"Hanni Pham" <aslikr002@gmail.com>',
     to: email,
     subject: 'Verify Your Account',
     text: `Hello, welcome to Dogchuchu!
