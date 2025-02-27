@@ -1,7 +1,8 @@
 // index.js
+require('dotenv').config();
+
 const sendVerificationEmail = require('./emailVerification.js');
 
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
