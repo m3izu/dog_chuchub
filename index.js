@@ -53,7 +53,6 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Endpoint for user signup
-const jwt = require('jsonwebtoken');
 
 // Inside your /api/signup endpoint:
 app.post('/api/signup', async (req, res) => {
