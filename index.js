@@ -1,4 +1,6 @@
 // index.js
+const sendVerificationEmail = require('./utils/emailVerification');
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -12,6 +14,7 @@ const bcrypt = require('bcryptjs');
 const app = express();
 app.use(express.json());
 app.use(cors());
+console.log('Email user:', process.env.EMAIL_USER);
 
 const PORT = process.env.PORT || 10000;
 

@@ -1,5 +1,5 @@
 // In the same file or a separate file (e.g., utils/emailVerification.js)
-const transporter = require('./mailer');
+const transporter = require('./utils/mailer');
 
 function sendVerificationEmail(email, token) {
   // Construct the verification URL – change the domain as needed (e.g., your Render URL)
