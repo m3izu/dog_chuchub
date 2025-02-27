@@ -6,10 +6,11 @@ function sendVerificationEmail(email, token) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: email,
-    subject: 'psst pogi, Verify Your Account',
+    subject: 'Verify Your Account',
     html: `<p>Hallo, welcome to Dogchuchu</p>
-           <p>Please click the following link to verify your account:</p>
-           <a href="${url}">Verify Email lods</a>
+           <p>Please copy the following link and paste it into a new tab to verify your account:</p>
+           <p>COPY: https://dog-chuchub.onrender.com/api/verify?token=${token}</>
+           <p>made with love by Group 7 of CS2D AppDev 2024-25</p>
            <img alt="i love m" width="500" height="300" src="https://i.pinimg.com/originals/bb/cd/4a/bbcd4a8498bdfde55bfd6bf0fdbff66d.gif">`
 
   };

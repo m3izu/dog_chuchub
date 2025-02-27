@@ -1,5 +1,5 @@
 require('dotenv').config();
-const transporter = require('./utils/mailer');
+const transporter = require('./mailer');
 
 const mailOptions = {
   from: process.env.EMAIL_USER,
