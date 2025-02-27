@@ -1,5 +1,5 @@
 // index.js
-const sendVerificationEmail = require('./utils/emailVerification');
+const sendVerificationEmail = require('./utils/emailVerification.js');
 
 require('dotenv').config();
 const express = require('express');
