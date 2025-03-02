@@ -26,11 +26,12 @@ mongoose
   .catch((err) => console.error("MongoDB connection error:", err));
 
 // Define User and Post schemas
-// In your user model file (e.g., models/User.js)
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
+  // New field for username. Users can update this later.
+  username: { type: String, default: '' },
   password: { type: String, required: true },
-  isVerified: { type: Boolean, default: false } // New field to track email verification
+  isVerified: { type: Boolean, default: false }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -57,8 +58,6 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Endpoint for user signup
-
-// Inside your /api/signup endpoint:
 app.post('/api/signup', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -71,7 +70,7 @@ app.post('/api/signup', async (req, res) => {
     // Save user (still unverified)
     await user.save();
     
-    // Send verification email (see next step)
+    // Send verification email
     sendVerificationEmail(user.email, token);
     
     res.json({ message: 'User created. Please check your email to verify your account.' });
@@ -98,8 +97,6 @@ app.get('/api/verify', async (req, res) => {
   }
 });
 
-
-
 // Endpoint for user login
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
@@ -121,7 +118,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ message: 'Login error', error });
   }
 });
-
 
 // Setup multer for file uploads (in-memory storage)
 const storage = multer.memoryStorage();
@@ -157,13 +153,46 @@ app.post('/api/posts', authMiddleware, upload.single('image'), async (req, res) 
   }
 });
 
-// Endpoint to fetch posts (public)
+// Public endpoint to fetch all posts
 app.get('/api/posts', async (req, res) => {
   try {
     const posts = await Post.find().sort({ timestamp: -1 });
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching posts', error });
+  }
+});
+
+// -----------------------------
+// New Endpoint: Update Username
+// -----------------------------
+app.put('/api/updateUsername', authMiddleware, async (req, res) => {
+  const { username } = req.body;
+  if (!username || username.trim() === '') {
+    return res.status(400).json({ message: 'Username cannot be empty' });
+  }
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { username: username.trim() },
+      { new: true }
+    );
+    if (!updatedUser) return res.status(404).json({ message: 'User not found' });
+    res.json({ message: 'Username updated', username: updatedUser.username });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating username', error });
+  }
+});
+
+// -----------------------------
+// New Endpoint: Get User's Posts
+// -----------------------------
+app.get('/api/myPosts', authMiddleware, async (req, res) => {
+  try {
+    const posts = await Post.find({ userId: req.userId }).sort({ timestamp: -1 });
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching user posts', error });
   }
 });
 
