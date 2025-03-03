@@ -31,7 +31,8 @@ const userSchema = new mongoose.Schema({
   // New field for username. Users can update this later.
   username: { type: String, default: '' },
   password: { type: String, required: true },
-  isVerified: { type: Boolean, default: false }
+  isVerified: { type: Boolean, default: false },
+  profilePicture: { type: String, default: '' }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -195,5 +196,48 @@ app.get('/api/myPosts', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error fetching user posts', error });
   }
 });
+
+// Endpoint to update profile picture
+app.put('/api/updateProfilePicture', authMiddleware, upload.single('image'), async (req, res) => {
+  try {
+    // Upload the new profile picture to Cloudinary
+    const form = new FormData();
+    form.append('file', req.file.buffer, { filename: 'profile.jpg' });
+    form.append('upload_preset', process.env.CLOUDINARY_UPLOAD_PRESET);
+    const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`;
+    
+    const cloudResponse = await axios.post(cloudinaryUrl, form, {
+      headers: form.getHeaders(),
+    });
+    const imageUrl = cloudResponse.data.secure_url;
+    
+    // Update the user's profilePicture field
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { profilePicture: imageUrl },
+      { new: true }
+    );
+    
+    res.json({ message: 'Profile picture updated', profilePicture: updatedUser.profilePicture });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating profile picture', error });
+  }
+});
+
+// Endpoint to delete profile picture
+app.delete('/api/deleteProfilePicture', authMiddleware, async (req, res) => {
+  try {
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      { profilePicture: '' },
+      { new: true }
+    );
+    res.json({ message: 'Profile picture deleted', profilePicture: updatedUser.profilePicture });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting profile picture', error });
+  }
+});
+
+
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
