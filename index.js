@@ -62,6 +62,12 @@ const authMiddleware = (req, res, next) => {
 app.post('/api/signup', async (req, res) => {
   const { email, password } = req.body;
   try {
+    // Check if a user with the provided email already exists.
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
     const hashed = await bcrypt.hash(password, 10);
     const user = new User({ email, password: hashed });
     
@@ -79,6 +85,7 @@ app.post('/api/signup', async (req, res) => {
     res.status(500).json({ message: 'Signup error', error });
   }
 });
+
 
 app.get('/api/verify', async (req, res) => {
   const { token } = req.query;
