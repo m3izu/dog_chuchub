@@ -38,10 +38,11 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const postSchema = new mongoose.Schema({
-  userId: mongoose.Schema.Types.ObjectId,
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   imageUrl: String,
   caption: String,
   predictions: Object,
+  likeCount: { type: Number, default: 0 },
   timestamp: { type: Date, default: Date.now },
 });
 const Post = mongoose.model('Post', postSchema);
@@ -164,7 +165,10 @@ app.post('/api/posts', authMiddleware, upload.single('image'), async (req, res) 
 // Public endpoint to fetch all posts
 app.get('/api/posts', async (req, res) => {
   try {
-    const posts = await Post.find().sort({ timestamp: -1 });
+    // Populate userId with username and profilePicture fields
+    const posts = await Post.find()
+      .sort({ timestamp: -1 })
+      .populate('userId', 'username profilePicture');
     res.json(posts);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching posts', error });
