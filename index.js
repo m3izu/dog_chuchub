@@ -208,6 +208,18 @@ app.get('/api/myPosts', authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint to fetch the current user's profile
+app.get('/api/profile', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId).select('username profilePicture email');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching profile', error });
+  }
+});
+
+
 // Endpoint to update profile picture
 app.put('/api/updateProfilePicture', authMiddleware, upload.single('image'), async (req, res) => {
   try {
