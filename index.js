@@ -37,14 +37,17 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// in your postSchema
 const postSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   imageUrl: String,
   caption: String,
   predictions: Object,
   likeCount: { type: Number, default: 0 },
+  likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // new
   timestamp: { type: Date, default: Date.now },
 });
+
 const Post = mongoose.model('Post', postSchema);
 
 // Middleware to protect routes with JWT
@@ -163,17 +166,31 @@ app.post('/api/posts', authMiddleware, upload.single('image'), async (req, res) 
 });
 
 // Public endpoint to fetch all posts
-app.get('/api/posts', async (req, res) => {
+// Require auth to know who the current user is
+app.get('/api/posts', authMiddleware, async (req, res) => {
   try {
-    // Populate userId with username and profilePicture fields
     const posts = await Post.find()
       .sort({ timestamp: -1 })
       .populate('userId', 'username profilePicture');
-    res.json(posts);
+
+    // Map to include hasLiked for this user
+    const result = posts.map(post => ({
+      _id: post._id,
+      userId: post.userId,
+      imageUrl: post.imageUrl,
+      caption: post.caption,
+      predictions: post.predictions,
+      likeCount: post.likeCount,
+      hasLiked: post.likedBy.includes(req.userId),
+      timestamp: post.timestamp,
+    }));
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching posts', error });
   }
 });
+
 
 // -----------------------------
 // New Endpoint: Update Username
@@ -197,22 +214,33 @@ app.put('/api/updateUsername', authMiddleware, async (req, res) => {
 });
 
 // Endpoint to like a post
+// replace your existing POST /api/posts/:postId/like with this:
 app.post('/api/posts/:postId/like', authMiddleware, async (req, res) => {
   try {
     const { postId } = req.params;
-    // Atomically increment likeCount by 1
-    const post = await Post.findByIdAndUpdate(
-      postId,
-      { $inc: { likeCount: 1 } },
-      { new: true }
-    );
+    const userId = req.userId;
+
+    // Find post
+    const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: 'Post not found' });
-    res.json({ message: 'Post liked', likeCount: post.likeCount });
+
+    // If user already liked, just return current state
+    if (post.likedBy.includes(userId)) {
+      return res.json({ likeCount: post.likeCount, hasLiked: true });
+    }
+
+    // Otherwise add to likedBy and increment
+    post.likedBy.push(userId);
+    post.likeCount += 1;
+    await post.save();
+
+    res.json({ likeCount: post.likeCount, hasLiked: true });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error liking post', error });
   }
 });
+
 
 // -----------------------------
 // New Endpoint: Get User's Posts
