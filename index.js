@@ -196,6 +196,24 @@ app.put('/api/updateUsername', authMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint to like a post
+app.post('/api/posts/:postId/like', authMiddleware, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    // Atomically increment likeCount by 1
+    const post = await Post.findByIdAndUpdate(
+      postId,
+      { $inc: { likeCount: 1 } },
+      { new: true }
+    );
+    if (!post) return res.status(404).json({ message: 'Post not found' });
+    res.json({ message: 'Post liked', likeCount: post.likeCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error liking post', error });
+  }
+});
+
 // -----------------------------
 // New Endpoint: Get User's Posts
 // -----------------------------
